@@ -12,7 +12,6 @@ use Cwd qw( abs_path cwd);
 ## Define filtering parameters ##
 
 my $min_read_pos = 0.10;
-my $max_read_pos = 1 - $min_read_pos;
 my $min_var_freq = 0.05;
 my $min_var_count = 4;
 
@@ -119,7 +118,7 @@ unless($sample) {
 }
 
 my %filters;
-$filters{'position'} = [sprintf("PB%0.f",$min_read_pos*100), "Average position on read less than " . $min_read_pos . " or greater than " . $max_read_pos . " fraction of the read length"];
+$filters{'position'} = [sprintf("PB%0.f",$min_read_pos*100), "Average position on read less than " . $min_read_pos . " fraction of the relative distance from the read start or read end"];
 $filters{'strand_bias'} = [sprintf("SB%0.f",$min_strandedness*100), "Reads supporting the variant have less than " . $min_strandedness . " fraction of the reads on one strand, but reference supporting reads are not similarly biased"];
 $filters{'min_var_count'} = [ "MVC".$min_var_count, "Less than " . $min_var_count . " high quality reads support the variant"];
 $filters{'min_var_freq'} = [ sprintf("MVF%0.f",$min_var_freq*100), "Variant allele frequency is less than " . $min_var_freq];
@@ -408,7 +407,7 @@ sub filter_site {
             my $var_freq = $var_count / ($ref_count + $var_count);
 
             ## FAILURE 1: READ POSITION ##
-            if(($var_pos < $min_read_pos) || ($var_pos > $max_read_pos)) {
+            if($var_pos < $min_read_pos) {
                 #$stats{'num_fail_pos'}++;
                 push @filter_names, $filters{'position'}->[0];
             }
