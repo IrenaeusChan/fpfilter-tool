@@ -572,7 +572,6 @@ sub setup_workdir {
         my ($bam_filename,$bam_path,$bam_suffix) = File::Basename::fileparse($bam_file,qw/\.bam/);
         $bam_index = File::Spec->catfile($bam_path,$bam_filename .'.bai');
         unless (-e $bam_index) {
-            die($bam_index);
             $bam_index = $bam_file .'.bai';
         }
     }
