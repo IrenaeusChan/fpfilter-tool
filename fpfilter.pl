@@ -183,7 +183,7 @@ while(my $entry = $input->getline) {
 
     if(length($ref) > 1 || length($var) > 1) {
         #it's an indel or mnp
-        if(length($ref) == length($var)) {
+        if( (length($ref) == length($var)) || (length($ref) > 1 && length($var) > 1) ) {
             print STDERR 'Complex variant or MNP will be skipped: '. $chrom ."\t". $pos ."\t". $ref ."\t". $var ."\n";
             next;
         }
