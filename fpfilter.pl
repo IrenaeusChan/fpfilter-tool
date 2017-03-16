@@ -6,7 +6,7 @@ use strict;
 use Getopt::Long;
 use IO::File;
 use File::Temp qw( tempdir );
-use File::Spec qw( catfile );
+use File::Spec;
 use File::Basename qw( fileparse );
 use Cwd qw( abs_path cwd);
 
@@ -569,16 +569,19 @@ sub setup_workdir {
     symlink $bam_file, $working_bam;
 
     unless ($bam_index) {
-        my ($bam_filename,$bam_path,$bam_suffix) = File::Basename::fileparse($bam_file,qw/\.bam/);
+        my ($bam_filename,$bam_path,$bam_suffix) = File::Basename::fileparse($bam_file,qr/\.bam/);
         $bam_index = File::Spec->catfile($bam_path,$bam_filename .'.bai');
         unless (-e $bam_index) {
             $bam_index = $bam_file .'.bai';
         }
     }
-    unless (-e $bam_index) {
+    
+    if (-e $bam_index) {
+        symlink $bam_index, $working_bam_index;
+    } 
+    else {   
         index_bam($working_bam);
     }
-    symlink $bam_index, $working_bam_index;
 
     return ($dir, $working_reference, $working_bam);
 }
