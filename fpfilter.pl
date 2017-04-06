@@ -674,24 +674,6 @@ sub file_is_gzipped {
     }
 }
 
-sub _open_file {
-    my ($file, $rw) = @_;
-    if ($file eq '-') {
-        if ($rw eq 'r') {
-            return 'STDIN';
-        }
-        elsif ($rw eq 'w') {
-            return 'STDOUT';
-        }
-        else {
-            die "cannot open '-' with access '$rw': r = STDIN, w = STDOUT!!!";
-        }
-    }
-    my $fh = (defined $rw) ? IO::File->new($file, $rw) : IO::File->new($file);
-    return $fh if $fh;
-    Carp::croak("Can't open file ($file) with access '$rw': $!");
-}
-
 sub open_gzip_file_for_reading {
     my $file = shift;
 
@@ -705,7 +687,7 @@ sub open_gzip_file_for_reading {
     my $pipe = "zcat ".$file." |";
 
     # _open_file throws its own exception if it doesn't work
-    return _open_file($pipe);
+    return IO::File->new($pipe, 'r');
 }
 
 sub open_file_for_reading {
@@ -715,7 +697,7 @@ sub open_file_for_reading {
         or return;
 
     # _open_file throws its own exception if it doesn't work
-    return _open_file($file, 'r');
+    return IO::File->new($file, 'r');
 }
 
 sub open_vcf_file {
