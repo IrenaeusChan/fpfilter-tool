@@ -687,7 +687,7 @@ sub open_gzip_file_for_reading {
     my $pipe = "zcat ".$file." |";
 
     # _open_file throws its own exception if it doesn't work
-    return IO::File->new($pipe, 'r');
+    return IO::File->new($pipe);
 }
 
 sub open_file_for_reading {
