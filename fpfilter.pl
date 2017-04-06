@@ -7,8 +7,9 @@ use Getopt::Long;
 use IO::File;
 use File::Temp qw( tempdir );
 use File::Spec;
-use File::Basename qw( fileparse );
+use File::Basename qw( fileparse dirname);
 use Cwd qw( abs_path cwd);
+use Carp;
 
 ## Define filtering parameters ##
 
@@ -141,7 +142,7 @@ my ($workdir, $working_fasta, $working_bam) = setup_workdir($ref_fasta, $bam_fil
 
 my $starting_dir = cwd();
 
-my $input = IO::File->new($vcf_file) or die "Unable to open input file $vcf_file: $!\n";
+my $input = open_vcf_file($vcf_file) or die "Unable to open input file $vcf_file: $!\n";
 $vcf_header = parse_vcf_header($input);
 add_filters_to_vcf_header($vcf_header, values %filters);
 add_process_log_to_header($vcf_header, $vcf_file, @params);
@@ -602,4 +603,111 @@ sub index_bam {
     my @args = ($samtools_path, "index", $bam);
     system(@args) == 0
         or die "Unable to index $bam: $?\n";
+}
+
+sub validate_file_for_reading {
+    my $file = shift;
+
+    unless ( defined $file ) {
+        Carp::croak("Can't validate_file_for_reading: No file given");
+    }
+
+    if ($file eq '-') {
+        return 1;
+    }
+
+    unless (-e $file ) {
+        Carp::croak("File ($file) does not exist");
+    }
+
+    unless (-f $file) {
+        Carp::croak("File ($file) exists but is not a plain file");
+    }
+
+    unless ( -r $file ) {
+        Carp::croak("Do not have READ access to file ($file)");
+    }
+
+    return 1;
+}
+
+# Follows a symlink chain to reach the final file, accounting for relative symlinks along the way
+sub follow_symlink {
+    my $file = shift;
+
+    # Follow the chain of symlinks
+    while (-l $file) {
+        my $original_file = $file;
+        $file = readlink($file);
+        # If the symlink was relative, repair that
+        unless (File::Spec->file_name_is_absolute($file)) {
+            my $path = dirname($original_file);
+            $file = join ("/", ($path, $file));
+        }
+        validate_file_for_reading($file);
+    }
+
+    return $file;
+}
+
+sub file_type {
+    my $file = shift;
+
+    validate_file_for_reading($file);
+    $file = follow_symlink($file);
+
+    my $result = `file -b $file`;
+    my @answer = split /\s+/, $result;
+    return $answer[0];
+}
+
+sub file_is_gzipped {
+    my $filename = shift;
+
+    my $file_type = file_type($filename);
+
+    #NOTE: debian bug #522441 - `file` can report gzip files as any of these....
+    if ($file_type eq "gzip" or $file_type eq "Sun" or $file_type eq "Minix" or $file_type eq 'GRand') {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+sub open_gzip_file_for_reading {
+    my $file = shift;
+
+    validate_file_for_reading($file)
+        or return;
+
+    unless (file_is_gzipped($file)) {
+        Carp::croak("File ($file) is not a gzip file");
+    }
+
+    my $pipe = "zcat ".$file." |";
+
+    # _open_file throws its own exception if it doesn't work
+    return IO::File->new($pipe);
+}
+
+sub open_file_for_reading {
+    my $file = shift;
+
+    validate_file_for_reading($file)
+        or return;
+
+    # _open_file throws its own exception if it doesn't work
+    return IO::File->new($file, 'r');
+}
+
+sub open_vcf_file {
+    my $filename = shift;
+
+    my $fh;
+    if ( file_is_gzipped($filename) ) {
+        $fh = open_gzip_file_for_reading($filename);
+    } else {
+        $fh = open_file_for_reading($filename);
+    }
+    return $fh;
 }
