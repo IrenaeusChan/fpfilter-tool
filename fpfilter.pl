@@ -247,7 +247,7 @@ sub read_counts_by_allele {
     for(my $colCounter = 5; $colCounter < $numContents; $colCounter++) {
         my $this_allele = $lineContents[$colCounter];
         my @alleleContents = split(/\:/, $this_allele);
-        if($alleleContents[0] eq $allele) {
+        if(uc($alleleContents[0]) eq $allele) {
             my $numAlleleContents = @alleleContents;
 
             return("") if($numAlleleContents < 8);
