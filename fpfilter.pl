@@ -170,7 +170,7 @@ while(my $entry = $input->getline) {
     my %format_keys = map { $_ => $sample_fields[$index++] } split /:/, $fields{FORMAT};
     #these are in order ACGT
     my @alleles = ($fields{REF}, split /,/, $fields{ALT});
-    my %gt_alleles = map {$_ => 1} grep { $_ > 0 } split /\//, $format_keys{GT};
+    my %gt_alleles = map {$_ => 1} grep { $_ > 0 } split m![/|]!, $format_keys{GT};
     my @used_alleles;
     for my $allele_index (keys %gt_alleles) {
         push @used_alleles, $alleles[$allele_index];
